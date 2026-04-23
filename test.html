@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="mn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хотол Баясгалант Органик Бордоо — 3D Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #fafafa;
+            font-family: 'Georgia', serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #1a1a1a;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .ui-overlay {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .btn {
+            background: rgba(27, 126, 194, 0.85);
+            border: 1px solid #1B7EC2;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: #1565a8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(27, 126, 194, 0.5);
+        }
+
+        .btn.active {
+            background: #1565a8;
+            box-shadow: 0 0 15px rgba(27, 126, 194, 0.7);
+        }
+
+        .title-overlay {
+            position: fixed;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+        }
+
+        .title-overlay h1 {
+            font-size: 15px;
+            letter-spacing: 3px;
+            color: #1B7EC2;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(27, 126, 194, 0.3);
+        }
+
+        .title-overlay p {
+            font-size: 11px;
+            color: rgba(30, 30, 30, 0.55);
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        .view-label {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: rgba(30, 30, 30, 0.45);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="title-overlay">
+        <h1>Хотол Баясгалант Органик Бордоо</h1>
+        <p>Green Khovd LLC — 3D Product Model</p>
+    </div>
+    <div class="view-label" id="viewLabel">AUTO ROTATE</div>
+
+    <div class="ui-overlay">
+        <button class="btn active" onclick="setView('auto')">🔄 Эргэх</button>
+        <button class="btn" onclick="setView('front')">Урд</button>
+        <button class="btn" onclick="setView('side')">Хажуу</button>
+        <button class="btn" onclick="setView('top')">Дээр</button>
+        <button class="btn" onclick="setView('explode')">💥 Задлах</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ═══════════════════════════════════
+        // SCENE SETUP
+        // ═══════════════════════════════════
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xfafafa);
+        scene.fog = new THREE.Fog(0xfafafa, 12, 30);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0.5, 4.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // ═══════════════════════════════════
+        // LIGHTING
+        // ═══════════════════════════════════
+        // Moderate ambient — avoids washing out label colors
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+
+        // Front key light — clean white, primary
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+        keyLight.position.set(0, 0.5, 5);
+        keyLight.castShadow = true;
+        scene.add(keyLight);
+
+        // Top fill
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        fillLight.position.set(0, 5, 2);
+        scene.add(fillLight);
+
+        // Left side fill
+        const sideLight = new THREE.DirectionalLight(0xffffff, 0.35);
+        sideLight.position.set(-4, 1, 2);
+        scene.add(sideLight);
+
+        // Right side fill
+        const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
+        rimLight.position.set(4, 1, 2);
+        scene.add(rimLight);
+
+        // ═══════════════════════════════════
+        // LABEL TEXTURE (Canvas)
+        // ═══════════════════════════════════
+        function createLabelTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1400;
+            const ctx = canvas.getContext('2d');
+
+            // Background — kraft paper
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, 1400);
+            bgGrad.addColorStop(0, '#F5E6C8');
+            bgGrad.addColorStop(0.5, '#EDD9A3');
+            bgGrad.addColorStop(1, '#F0DEB4');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, 1024, 1400);
+
+            // Kraft paper texture noise
+            for (let i = 0; i < 3000; i++) {
+                ctx.fillStyle = `rgba(${Math.random() > 0.5 ? 180 : 120},${Math.random() > 0.5 ? 140 : 100},60,${Math.random() * 0.04})`;
+                ctx.fillRect(Math.random() * 1024, Math.random() * 1400, Math.random() * 3 + 1, Math.random() * 3 + 1);
+            }
+
+            // ── LOGO (Öljii endless knot) ──
+            ctx.save();
+            ctx.translate(512, 185);
+
+            // White circle background
+            ctx.beginPath();
+            ctx.arc(0, 0, 142, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            const LC = '#1B7EC2';
+            ctx.strokeStyle = LC;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Outer circle (with top break where top knot sits)
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.arc(0, 0, 132, 0.42, Math.PI * 2 - 0.42);
+            ctx.stroke();
+
+            // Bottom flat section (matching the logo's bottom shape)
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(-105, 95);
+            ctx.bezierCurveTo(-115, 118, -80, 135, -45, 128);
+            ctx.bezierCurveTo(-20, 122, 20, 122, 45, 128);
+            ctx.bezierCurveTo(80, 135, 115, 118, 105, 95);
+            ctx.stroke();
+
+            // Draw three öljii knots
+            drawVerticalKnot(ctx, 0, -68, 58, LC);    // top — vertical
+            drawGridKnot(ctx, -82, 52, 48, 30, LC);   // bottom-left — horizontal
+            drawGridKnot(ctx, 82, 52, 48, 30, LC);    // bottom-right — horizontal
+
+            // Triangle connectors (crossing in center like the logo)
+            ctx.strokeStyle = LC;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            // Left connector: top knot → bottom-left knot
+            ctx.moveTo(-14, -22);
+            ctx.lineTo(-62, 30);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(14, -22);
+            ctx.lineTo(62, 30);
+            ctx.stroke();
+            // Cross lines (X in the middle)
+            ctx.beginPath();
+            ctx.moveTo(-14, -22);
+            ctx.lineTo(62, 30);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(14, -22);
+            ctx.lineTo(-62, 30);
+            ctx.stroke();
+            // Bottom connector between two side knots
+            ctx.beginPath();
+            ctx.moveTo(-56, 52);
+            ctx.lineTo(56, 52);
+            ctx.stroke();
+
+            ctx.restore();
+
+            // ── MAIN TITLE ──
+            ctx.fillStyle = '#1B3A2D';
+            ctx.font = 'bold 72px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.letterSpacing = '2px';
+            ctx.fillText('ХОТОЛ БАЯСГАЛАНТ', 512, 380);
+
+            ctx.font = 'bold 62px Georgia, serif';
+            ctx.fillStyle = '#2D5A3D';
+            ctx.fillText('ОРГАНИК БОРДОО', 512, 455);
+
+            // ── GREEN ACCENT BAND ──
+            const bandGrad = ctx.createLinearGradient(0, 480, 0, 540);
+            bandGrad.addColorStop(0, '#1B4A30');
+            bandGrad.addColorStop(0.5, '#2D6A4F');
+            bandGrad.addColorStop(1, '#1B4A30');
+            ctx.fillStyle = bandGrad;
+            ctx.fillRect(0, 478, 1024, 68);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🌿 Агаар цэвэршүүлэгч  ·  Хөрс анагаагч  🌱', 512, 522);
+            ctx.fillText('🌿   🌱', 512, 522);
+
+            // ── INFO SECTION ──
+            ctx.fillStyle = '#1B3A2D';
+            ctx.font = 'bold 26px Georgia';
+            ctx.textAlign = 'left';
+            ctx.fillText('ОРЦЫН НАЙРЛАГА:', 60, 590);
+            ctx.fillText('Төрөл:', 630, 620);
+            ctx.fillText('Ясны бордоо:', 630, 660);
+
+            ctx.font = '22px Georgia';
+            ctx.fillStyle = '#2D4A35';
+            const ingredients = [
+                { icon: '🦴', text: 'Малын яс — Кальци, Фосфор' },
+                { icon: '🦴', text: 'Малын яс — Кальци, Фосфор' },
+                { icon: '🐑', text: 'Ноос — Азот, Аминхүчил' },
+                { icon: '🌿', text: 'Органик хаягдал — Гумус' },
+            ];
+            ingredients.forEach((item, i) => {
+                ctx.fillText(`${item.icon}  ${item.text}`, 60, 630 + i * 42);
+            });
+
+            // ── DIVIDER ──
+            ctx.strokeStyle = '#2D6A4F';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 5]);
+            ctx.beginPath();
+            ctx.moveTo(40, 760); ctx.lineTo(984, 760);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // ── WEIGHT ──
+            ctx.fillStyle = '#1B3A2D';
+            ctx.font = 'bold 28px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText('1000г  ·  35.27 oz', 512, 800);
+
+            // ── QR SECTION HEADER ──
+            ctx.fillStyle = '#2D6A4F';
+            ctx.font = 'bold 22px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText('СОШИАЛ ХУУДАС', 512, 840);
+
+            // ── LEFT QR BOX ──
+            ctx.strokeStyle = '#2D6A4F';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = '#ffffff';
+            roundRect(ctx, 50, 860, 410, 380, 15, true, true);
+
+            drawQRPattern(ctx, 80, 890, 160);
+
+            ctx.fillStyle = '#1B3A2D';
+            ctx.font = 'bold 20px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText('📘 Манай хуудас', 255, 890 + 170 + 20);
+            ctx.font = '14px Georgia';
+            ctx.fillStyle = '#2D6A4F';
+            ctx.fillText('fb.com/Khotolbaysgalant', 255, 890 + 170 + 45);
+            ctx.fillText('.fertilizer', 255, 890 + 170 + 62);
+
+            // ── RIGHT QR BOX ──
+            ctx.strokeStyle = '#2D6A4F';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = '#ffffff';
+            roundRect(ctx, 564, 860, 410, 380, 15, true, true);
+
+            drawQRPattern(ctx, 594, 890, 160);
+
+            ctx.fillStyle = '#1B3A2D';
+            ctx.font = 'bold 20px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText('👥 Дагагчид 1000+', 769, 890 + 170 + 20);
+            ctx.font = '14px Georgia';
+            ctx.fillStyle = '#2D6A4F';
+            ctx.fillText('Дагаарай / Follow Us', 769, 890 + 170 + 45);
+            ctx.fillText('@Khotolbaysgalant', 769, 890 + 170 + 62);
+
+            // Middle divider between QR boxes
+            ctx.strokeStyle = '#2D6A4F';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(512, 870); ctx.lineTo(512, 1230);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#2D6A4F';
+            ctx.font = '13px Georgia';
+            ctx.textAlign = 'center';
+            ctx.save();
+            ctx.translate(512, 1050);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Green Khovd', 0, 0);
+            ctx.restore();
+
+            // ── BOTTOM STRIP ──
+            const bottomGrad = ctx.createLinearGradient(0, 1270, 0, 1400);
+            bottomGrad.addColorStop(0, '#1B3A2D');
+            bottomGrad.addColorStop(1, '#0d2018');
+            ctx.fillStyle = bottomGrad;
+            ctx.fillRect(0, 1270, 1024, 130);
+
+            ctx.fillStyle = '#F5E6C8';
+            ctx.font = 'bold 22px Georgia';
+            ctx.textAlign = 'left';
+            ctx.fillText('Green Khovd LLC', 40, 1310);
+            ctx.font = '18px Georgia';
+            ctx.fillText('📞 +976 __ __ __ __', 40, 1340);
+
+            ctx.fillStyle = '#4CAF82';
+            ctx.font = '18px Georgia';
+            ctx.textAlign = 'right';
+            ctx.fillText('Ховд аймаг, Монгол улс', 984, 1310);
+            ctx.font = '14px Georgia';
+            ctx.fillStyle = 'rgba(245,230,200,0.6)';
+            ctx.fillText('© 2024 Бүх эрх хуулиар хамгаалагдсан', 984, 1340);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Helper: stroke a path with given color and width
+        function S(ctx, color, width, fn) {
+            ctx.beginPath(); fn();
+            ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+        }
+
+        // Vertical endless knot — used for top position
+        function drawVerticalKnot(ctx, cx, cy, size, color) {
+            const s = size;
+            const lw = s * 0.17;
+            const gap = lw * 0.6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // --- All strands (layer 1) ---
+            // Two outer S-curve loops that interlock
+            S(ctx, color, lw, () => {
+                ctx.moveTo(cx, cy - s * 0.9);
+                ctx.bezierCurveTo(cx + s * 0.55, cy - s * 0.9, cx + s * 0.55, cy - s * 0.4, cx + s * 0.28, cy);
+                ctx.bezierCurveTo(cx + s * 0.0, cy + s * 0.4, cx - s * 0.55, cy + s * 0.4, cx - s * 0.28, cy + s * 0.8);
+            });
+            S(ctx, color, lw, () => {
+                ctx.moveTo(cx, cy - s * 0.9);
+                ctx.bezierCurveTo(cx - s * 0.55, cy - s * 0.9, cx - s * 0.55, cy - s * 0.4, cx - s * 0.28, cy);
+                ctx.bezierCurveTo(cx - s * 0.0, cy + s * 0.4, cx + s * 0.55, cy + s * 0.4, cx + s * 0.28, cy + s * 0.8);
+            });
+            // Top two loops (ears)
+            S(ctx, color, lw, () => {
+                ctx.ellipse(cx - s * 0.28, cy - s * 0.72, s * 0.2, s * 0.2, 0, 0, Math.PI * 2);
+            });
+            S(ctx, color, lw, () => {
+                ctx.ellipse(cx + s * 0.28, cy - s * 0.72, s * 0.2, s * 0.2, 0, 0, Math.PI * 2);
+            });
+            // Inner vertical crossing strand
+            S(ctx, color, lw, () => {
+                ctx.moveTo(cx, cy - s * 0.35);
+                ctx.lineTo(cx, cy + s * 0.35);
+            });
+            // Inner horizontal crossing strand
+            S(ctx, color, lw, () => {
+                ctx.moveTo(cx - s * 0.28, cy);
+                ctx.lineTo(cx + s * 0.28, cy);
+            });
+            // Center grid
+            const g = s * 0.28;
+            S(ctx, color, lw * 0.9, () => {
+                ctx.rect(cx - g, cy - g * 0.6, g * 2, g * 1.2);
+            });
+
+            // --- White gaps at crossings (layer 2) ---
+            // Top S-curve crossing the inner horizontal
+            S(ctx, '#ffffff', lw + gap * 2, () => {
+                ctx.moveTo(cx - gap, cy - s * 0.02);
+                ctx.lineTo(cx + gap, cy - s * 0.02);
+            });
+            S(ctx, '#ffffff', lw + gap * 2, () => {
+                ctx.moveTo(cx - gap, cy + s * 0.02);
+                ctx.lineTo(cx + gap, cy + s * 0.02);
+            });
+
+            // --- Redraw over-strands (layer 3) ---
+            S(ctx, color, lw, () => {
+                ctx.moveTo(cx, cy - s * 0.35);
+                ctx.lineTo(cx, cy + s * 0.35);
+            });
+        }
+
+        // Horizontal grid Celtic knot — used for side positions
+        function drawGridKnot(ctx, cx, cy, hw, hh, color) {
+            const lw = Math.min(hw, hh) * 0.19;
+            const gap = lw * 0.58;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const cols = 3, rows = 2;
+            const cw = (hw * 2) / cols;
+            const ch = (hh * 2) / rows;
+            const x0 = cx - hw, y0 = cy - hh;
+            const rr = Math.min(cw, ch) * 0.4;
+
+            // --- Outer border ---
+            S(ctx, color, lw, () => {
+                ctx.moveTo(x0 + rr, y0);
+                ctx.lineTo(x0 + hw * 2 - rr, y0);
+                ctx.quadraticCurveTo(x0 + hw * 2, y0, x0 + hw * 2, y0 + rr);
+                ctx.lineTo(x0 + hw * 2, y0 + hh * 2 - rr);
+                ctx.quadraticCurveTo(x0 + hw * 2, y0 + hh * 2, x0 + hw * 2 - rr, y0 + hh * 2);
+                ctx.lineTo(x0 + rr, y0 + hh * 2);
+                ctx.quadraticCurveTo(x0, y0 + hh * 2, x0, y0 + hh * 2 - rr);
+                ctx.lineTo(x0, y0 + rr);
+                ctx.quadraticCurveTo(x0, y0, x0 + rr, y0);
+                ctx.closePath();
+            });
+
+            // --- Horizontal internal strands ---
+            for (let r = 1; r < rows; r++) {
+                const y = y0 + r * ch;
+                S(ctx, color, lw, () => {
+                    ctx.moveTo(x0, y); ctx.lineTo(x0 + hw * 2, y);
+                });
+            }
+
+            // --- Vertical internal strands ---
+            for (let c = 1; c < cols; c++) {
+                const x = x0 + c * cw;
+                S(ctx, color, lw, () => {
+                    ctx.moveTo(x, y0); ctx.lineTo(x, y0 + hh * 2);
+                });
+            }
+
+            // --- White gaps at internal crossings ---
+            for (let r = 1; r < rows; r++) {
+                for (let c = 1; c < cols; c++) {
+                    const x = x0 + c * cw;
+                    const y = y0 + r * ch;
+                    if ((r + c) % 2 === 0) {
+                        // horizontal under
+                        S(ctx, '#ffffff', lw + gap * 2, () => {
+                            ctx.moveTo(x - gap, y); ctx.lineTo(x + gap, y);
+                        });
+                        S(ctx, color, lw, () => {
+                            ctx.moveTo(x, y - gap); ctx.lineTo(x, y + gap);
+                        });
+                    } else {
+                        // vertical under
+                        S(ctx, '#ffffff', lw + gap * 2, () => {
+                            ctx.moveTo(x, y - gap); ctx.lineTo(x, y + gap);
+                        });
+                        S(ctx, color, lw, () => {
+                            ctx.moveTo(x - gap, y); ctx.lineTo(x + gap, y);
+                        });
+                    }
+                }
+            }
+
+            // --- White gaps at border crossings ---
+            for (let c = 1; c < cols; c++) {
+                const x = x0 + c * cw;
+                // top border: vertical goes over
+                S(ctx, '#ffffff', lw + gap * 2, () => {
+                    ctx.moveTo(x - gap, y0); ctx.lineTo(x + gap, y0);
+                });
+                S(ctx, color, lw, () => {
+                    ctx.moveTo(x, y0 - gap); ctx.lineTo(x, y0 + gap);
+                });
+                // bottom border
+                S(ctx, '#ffffff', lw + gap * 2, () => {
+                    ctx.moveTo(x - gap, y0 + hh * 2); ctx.lineTo(x + gap, y0 + hh * 2);
+                });
+                S(ctx, color, lw, () => {
+                    ctx.moveTo(x, y0 + hh * 2 - gap); ctx.lineTo(x, y0 + hh * 2 + gap);
+                });
+            }
+            for (let r = 1; r < rows; r++) {
+                const y = y0 + r * ch;
+                // left border: horizontal goes over
+                S(ctx, '#ffffff', lw + gap * 2, () => {
+                    ctx.moveTo(x0, y - gap); ctx.lineTo(x0, y + gap);
+                });
+                S(ctx, color, lw, () => {
+                    ctx.moveTo(x0 - gap, y); ctx.lineTo(x0 + gap, y);
+                });
+                // right border
+                S(ctx, '#ffffff', lw + gap * 2, () => {
+                    ctx.moveTo(x0 + hw * 2, y - gap); ctx.lineTo(x0 + hw * 2, y + gap);
+                });
+                S(ctx, color, lw, () => {
+                    ctx.moveTo(x0 + hw * 2 - gap, y); ctx.lineTo(x0 + hw * 2 + gap, y);
+                });
+            }
+        }
+
+        // Draw QR pattern
+        function drawQRPattern(ctx, x, y, size) {
+            const cell = size / 21;
+            // QR-like pattern (decorative)
+            const pattern = [
+                [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+                [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+                [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0],
+                [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0],
+                [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0],
+                [0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+                [1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0],
+                [0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                [1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0],
+                [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0],
+                [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0],
+                [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+            ];
+            ctx.fillStyle = '#1B3A2D';
+            pattern.forEach((row, i) => {
+                row.forEach((cell_val, j) => {
+                    if (cell_val) ctx.fillRect(x + j * cell, y + i * cell, cell - 0.5, cell - 0.5);
+                });
+            });
+        }
+
+        function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        // ═══════════════════════════════════
+        // BUILD POUCH GEOMETRY
+        // ═══════════════════════════════════
+        const labelTex = createLabelTexture();
+
+        // ── VACUUM WRINKLE TEXTURE ──
+        function createVacuumTexture() {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+
+            // Base: near-clear with faint blue-green tint
+            ctx.fillStyle = 'rgba(210,235,220,0.18)';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Vacuum compression wrinkle lines — diagonal stress creases
+            ctx.strokeStyle = 'rgba(180,220,200,0.55)';
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 28; i++) {
+                ctx.beginPath();
+                const x0 = Math.random() * 512, y0 = Math.random() * 512;
+                const len = 30 + Math.random() * 80;
+                const angle = (Math.random() - 0.5) * 0.6 + Math.PI / 4;
+                ctx.moveTo(x0, y0);
+                ctx.quadraticCurveTo(
+                    x0 + Math.cos(angle) * len * 0.5 + (Math.random() - 0.5) * 20,
+                    y0 + Math.sin(angle) * len * 0.5 + (Math.random() - 0.5) * 20,
+                    x0 + Math.cos(angle) * len,
+                    y0 + Math.sin(angle) * len
+                );
+                ctx.stroke();
+            }
+
+            // Vacuum indent shadows — dark patches where plastic is sucked in
+            for (let i = 0; i < 12; i++) {
+                const gx = Math.random() * 512, gy = Math.random() * 512;
+                const gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, 40 + Math.random() * 60);
+                gr.addColorStop(0, 'rgba(80,120,90,0.18)');
+                gr.addColorStop(1, 'rgba(80,120,90,0)');
+                ctx.fillStyle = gr;
+                ctx.beginPath();
+                ctx.ellipse(gx, gy, 40 + Math.random() * 60, 20 + Math.random() * 30, Math.random() * Math.PI, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Edge highlight — bright rim where plastic is stretched tight
+            const edgeGrad = ctx.createLinearGradient(0, 0, 512, 0);
+            edgeGrad.addColorStop(0, 'rgba(255,255,255,0.22)');
+            edgeGrad.addColorStop(0.08, 'rgba(255,255,255,0.04)');
+            edgeGrad.addColorStop(0.92, 'rgba(255,255,255,0.04)');
+            edgeGrad.addColorStop(1, 'rgba(255,255,255,0.22)');
+            ctx.fillStyle = edgeGrad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Specular hotspot
+            const spec = ctx.createRadialGradient(180, 140, 0, 180, 140, 180);
+            spec.addColorStop(0, 'rgba(255,255,255,0.28)');
+            spec.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = spec;
+            ctx.fillRect(0, 0, 512, 512);
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        // Outer pouch — VACUUM SEALED
+        function createPouch() {
+            const group = new THREE.Group();
+            const vacTex = createVacuumTexture();
+
+            // ── OUTER VACUUM POUCH ──
+            // Vacuum shape: sides pinched inward, hugging inner bag tightly
+            const shape = new THREE.Shape();
+            const w = 1.2, h = 1.8;
+            // Sides curve INWARD (vacuum sucked) instead of outward
+            shape.moveTo(-w, -h);
+            shape.lineTo(w, -h);
+            // Right side — slightly pinched inward at center
+            shape.bezierCurveTo(w * 1.01, -h * 0.3, w * 0.98, h * 0.1, w * 0.97, h * 0.5);
+            shape.quadraticCurveTo(w * 0.88, h, 0, h);
+            shape.quadraticCurveTo(-w * 0.88, h, -w * 0.97, h * 0.5);
+            // Left side — pinched inward
+            shape.bezierCurveTo(-w * 0.98, h * 0.1, -w * 1.01, -h * 0.3, -w, -h);
+
+            const extrudeSettings = {
+                depth: 0.38,          // THINNER — vacuum compressed
+                bevelEnabled: true,
+                bevelThickness: 0.025,
+                bevelSize: 0.018,
+                bevelSegments: 10,
+                curveSegments: 24
+            };
+
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+            // ── VACUUM PLASTIC MATERIAL ──
+            // High transmission, very low opacity, strong refraction
+            const plasticMat = new THREE.MeshPhysicalMaterial({
+                color: 0xd0edd8,
+                transparent: true,
+                opacity: 0.22,
+                roughness: 0.08,
+                metalness: 0.0,
+                transmission: 0.88,
+                thickness: 0.18,        // thin — vacuum compressed
+                ior: 1.52,              // clear plastic IOR
+                reflectivity: 0.18,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.05,
+                map: vacTex,
+                alphaMap: vacTex,
+                side: THREE.DoubleSide,
+                envMapIntensity: 1.5,
+            });
+
+            const outerPouch = new THREE.Mesh(geometry, plasticMat);
+            outerPouch.position.z = -0.19;
+            outerPouch.castShadow = true;
+            group.add(outerPouch);
+
+            // ── VACUUM SIDE PINCH PANELS (left & right) ──
+            // Thin dark shadow strips showing plastic is sucked inward
+            for (let side of [-1, 1]) {
+                const pinchGeo = new THREE.PlaneGeometry(0.06, 3.4);
+                const pinchMat = new THREE.MeshPhysicalMaterial({
+                    color: 0x8ab89a,
+                    transparent: true,
+                    opacity: 0.35,
+                    roughness: 0.1,
+                    transmission: 0.5,
+                    side: THREE.DoubleSide,
+                });
+                const pinch = new THREE.Mesh(pinchGeo, pinchMat);
+                pinch.position.set(side * 1.18, 0, 0.0);
+                pinch.rotation.y = side * 0.08;
+                group.add(pinch);
+            }
+
+            // ── INNER CLOTH BAG (slightly compressed/flattened) ──
+            const innerShape = new THREE.Shape();
+            const iw = 1.05, ih = 1.55;
+            // Inner bag also slightly pinched — vacuum pressed
+            innerShape.moveTo(-iw, -ih);
+            innerShape.lineTo(iw, -ih);
+            innerShape.bezierCurveTo(iw * 1.0, ih * 0.3, iw * 0.97, ih * 0.7, iw * 0.92, ih * 0.88);
+            innerShape.quadraticCurveTo(iw * 0.75, ih, 0, ih);
+            innerShape.quadraticCurveTo(-iw * 0.75, ih, -iw * 0.92, ih * 0.88);
+            innerShape.bezierCurveTo(-iw * 0.97, ih * 0.7, -iw * 1.0, ih * 0.3, -iw, -ih);
+
+            const innerGeo = new THREE.ExtrudeGeometry(innerShape, {
+                depth: 0.28,   // flattened by vacuum
+                bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.012, bevelSegments: 6
+            });
+
+            // Cloth texture canvas
+            const clothCanvas = document.createElement('canvas');
+            clothCanvas.width = 256; clothCanvas.height = 256;
+            const cc = clothCanvas.getContext('2d');
+            cc.fillStyle = '#C8B890';
+            cc.fillRect(0, 0, 256, 256);
+            // Weave pattern
+            cc.strokeStyle = 'rgba(160,140,100,0.5)';
+            cc.lineWidth = 1;
+            for (let i = 0; i < 256; i += 4) {
+                cc.beginPath(); cc.moveTo(i, 0); cc.lineTo(i, 256); cc.stroke();
+                cc.beginPath(); cc.moveTo(0, i); cc.lineTo(256, i); cc.stroke();
+            }
+            // Compress shadow — vacuum sucked appearance
+            const csh = cc.createLinearGradient(0, 0, 0, 256);
+            csh.addColorStop(0, 'rgba(80,60,30,0.12)');
+            csh.addColorStop(0.5, 'rgba(80,60,30,0.0)');
+            csh.addColorStop(1, 'rgba(80,60,30,0.15)');
+            cc.fillStyle = csh; cc.fillRect(0, 0, 256, 256);
+            const clothTex = new THREE.CanvasTexture(clothCanvas);
+            clothTex.wrapS = clothTex.wrapT = THREE.RepeatWrapping;
+            clothTex.repeat.set(3, 4);
+
+            const clothMat = new THREE.MeshStandardMaterial({
+                color: 0xC8B890,
+                map: clothTex,
+                roughness: 0.88,
+                metalness: 0.0,
+            });
+
+            const innerBag = new THREE.Mesh(innerGeo, clothMat);
+            innerBag.position.z = -0.14;
+            innerBag.castShadow = true;
+            group.add(innerBag);
+
+            // ── VACUUM COMPRESSION WRINKLE OVERLAY ──
+            // Thin plane on front face showing suction wrinkles
+            const wrinkleGeo = new THREE.PlaneGeometry(2.35, 3.6);
+            const wrinkleMat = new THREE.MeshPhysicalMaterial({
+                map: vacTex,
+                transparent: true,
+                opacity: 0.38,
+                roughness: 0.05,
+                metalness: 0.0,
+                transmission: 0.6,
+                depthWrite: false,
+                side: THREE.FrontSide,
+            });
+            const wrinkleOverlay = new THREE.Mesh(wrinkleGeo, wrinkleMat);
+            wrinkleOverlay.position.z = 0.21;
+            wrinkleOverlay.position.y = 0.0;
+            group.add(wrinkleOverlay);
+
+            // ── FRONT LABEL ──
+            const labelGeo = new THREE.PlaneGeometry(2.02, 2.82);
+            const labelMat = new THREE.MeshStandardMaterial({
+                map: labelTex,
+                roughness: 0.72,
+                metalness: 0.0,
+                transparent: false,
+            });
+            const label = new THREE.Mesh(labelGeo, labelMat);
+            label.position.z = 0.22;
+            label.position.y = 0.04;
+            group.add(label);
+
+            // ── TOP VACUUM SEAL (flat, heat-pressed) ──
+            const sealGeo = new THREE.BoxGeometry(2.42, 0.10, 0.42);
+            const sealMat = new THREE.MeshPhysicalMaterial({
+                color: 0xb8dcc8,
+                roughness: 0.12,
+                metalness: 0.08,
+                transparent: true,
+                opacity: 0.72,
+                transmission: 0.3,
+                clearcoat: 0.8,
+            });
+            const topSeal = new THREE.Mesh(sealGeo, sealMat);
+            topSeal.position.y = 1.86;
+            group.add(topSeal);
+
+            // Multiple heat-seal ridges at top (vacuum seal lines)
+            for (let i = 0; i < 5; i++) {
+                const ridgeGeo = new THREE.BoxGeometry(2.38, 0.012, 0.40);
+                const ridgeMat = new THREE.MeshPhysicalMaterial({
+                    color: 0x90c4a8,
+                    roughness: 0.08,
+                    transparent: true, opacity: 0.65,
+                    clearcoat: 1.0,
+                });
+                const ridge = new THREE.Mesh(ridgeGeo, ridgeMat);
+                ridge.position.set(0, 1.80 + i * 0.018, 0.005);
+                group.add(ridge);
+            }
+
+            // ── BOTTOM GUSSET (vacuum flattened) ──
+            const gussetGeo = new THREE.BoxGeometry(2.42, 0.14, 0.50);
+            const gussetMat = new THREE.MeshPhysicalMaterial({
+                color: 0xa8cdb8,
+                roughness: 0.2,
+                transparent: true, opacity: 0.55,
+                transmission: 0.25,
+            });
+            const bottomGusset = new THREE.Mesh(gussetGeo, gussetMat);
+            bottomGusset.position.y = -1.86;
+            group.add(bottomGusset);
+
+            // ── VACUUM NOTCH (tear notch top right) ──
+            const notchGeo = new THREE.ConeGeometry(0.04, 0.12, 3);
+            const notchMat = new THREE.MeshStandardMaterial({ color: 0x6a9e80, roughness: 0.3 });
+            const notch = new THREE.Mesh(notchGeo, notchMat);
+            notch.position.set(1.1, 1.82, 0.01);
+            notch.rotation.z = Math.PI;
+            group.add(notch);
+
+            // ── BACK FACE — dark inside vacuum ──
+            const backGeo = new THREE.PlaneGeometry(2.35, 3.6);
+            const backMat = new THREE.MeshStandardMaterial({
+                color: 0x2a3d2e,
+                roughness: 0.9,
+                transparent: true,
+                opacity: 0.85,
+                side: THREE.BackSide,
+            });
+            const backFace = new THREE.Mesh(backGeo, backMat);
+            backFace.position.z = -0.38;
+            group.add(backFace);
+
+            return group;
+        }
+
+        const pouch = createPouch();
+        scene.add(pouch);
+
+        // ── PLATFORM ──
+        const platformGeo = new THREE.CylinderGeometry(2.2, 2.5, 0.08, 64);
+        const platformMat = new THREE.MeshStandardMaterial({
+            color: 0xe8f0f8, roughness: 0.3, metalness: 0.1,
+        });
+        const platform = new THREE.Mesh(platformGeo, platformMat);
+        platform.position.y = -2.2;
+        platform.receiveShadow = true;
+        scene.add(platform);
+
+        // Platform glow ring
+        const ringGeo = new THREE.TorusGeometry(2.0, 0.03, 8, 64);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x1B7EC2 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.y = -2.15;
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+
+        // ── PARTICLES ──
+        const particleCount = 120;
+        const particleGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 8;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 8;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0x1B7EC2, size: 0.03, transparent: true, opacity: 0.35 });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
+
+        // ═══════════════════════════════════
+        // CAMERA VIEWS & ANIMATION
+        // ═══════════════════════════════════
+        let currentView = 'auto';
+        let targetCamPos = { x: 0, y: 0.5, z: 4.5 };
+        let targetLookAt = { x: 0, y: 0, z: 0 };
+        let autoRotate = true;
+        let exploded = false;
+        let explodeProgress = 0;
+
+        const originalPositions = {
+            label: new THREE.Vector3(0, 0.05, 0.30),
+            inner: new THREE.Vector3(0, 0, -0.21),
+        };
+
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const views = {
+                auto: { pos: { x: 0, y: 0.5, z: 4.5 }, look: { x: 0, y: 0, z: 0 } },
+                front: { pos: { x: 0, y: 0, z: 4.2 }, look: { x: 0, y: 0, z: 0 } },
+                side: { pos: { x: 4.2, y: 0.2, z: 0.5 }, look: { x: 0, y: 0, z: 0 } },
+                top: { pos: { x: 0, y: 5, z: 1 }, look: { x: 0, y: 0, z: 0 } },
+                explode: { pos: { x: 0.5, y: 0.5, z: 5 }, look: { x: 0, y: 0, z: 0 } },
+            };
+
+            autoRotate = (view === 'auto');
+            document.getElementById('viewLabel').textContent =
+                view === 'auto' ? 'AUTO ROTATE' :
+                    view === 'front' ? 'FRONT VIEW' :
+                        view === 'side' ? 'SIDE VIEW' :
+                            view === 'top' ? 'TOP VIEW' : 'EXPLODED VIEW';
+
+            if (view === 'explode') {
+                exploded = true;
+            } else {
+                exploded = false;
+            }
+
+            if (views[view]) {
+                targetCamPos = views[view].pos;
+                targetLookAt = views[view].look;
+            }
+        }
+
+        // ═══════════════════════════════════
+        // ANIMATION LOOP
+        // ═══════════════════════════════════
+        let time = 0;
+        let rotY = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            // Auto rotate
+            if (autoRotate) {
+                rotY += 0.008;
+                pouch.rotation.y = rotY;
+            } else {
+                pouch.rotation.y += (0 - pouch.rotation.y) * 0.05;
+            }
+
+            // Gentle float
+            pouch.position.y = Math.sin(time * 0.7) * 0.06;
+
+            // Explode animation
+            if (exploded) {
+                explodeProgress = Math.min(1, explodeProgress + 0.02);
+            } else {
+                explodeProgress = Math.max(0, explodeProgress - 0.02);
+            }
+
+            // Explode: [0]=outerPouch [3]=innerBag [4]=wrinkleOverlay [5]=label
+            if (pouch.children[0]) pouch.children[0].position.z = -0.19 - explodeProgress * 1.1;
+            if (pouch.children[3]) pouch.children[3].position.z = -0.14 + explodeProgress * 0.1;
+            if (pouch.children[4]) pouch.children[4].position.z = 0.21 + explodeProgress * 0.6;
+            if (pouch.children[5]) pouch.children[5].position.z = 0.22 + explodeProgress * 1.4;
+
+            // Camera lerp
+            camera.position.x += (targetCamPos.x - camera.position.x) * 0.05;
+            camera.position.y += (targetCamPos.y - camera.position.y) * 0.05;
+            camera.position.z += (targetCamPos.z - camera.position.z) * 0.05;
+            camera.lookAt(targetLookAt.x, targetLookAt.y, targetLookAt.z);
+
+            // Particles drift
+            particles.rotation.y = time * 0.03;
+            particles.rotation.x = time * 0.015;
+
+            // Ring pulse
+            ring.material.color.setHSL(0.58, 0.8, 0.4 + Math.sin(time * 2) * 0.12);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Mouse drag
+        let isDragging = false, prevX = 0, prevY = 0;
+        renderer.domElement.addEventListener('mousedown', e => { isDragging = true; prevX = e.clientX; prevY = e.clientY; autoRotate = false; });
+        renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+        renderer.domElement.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            const dx = e.clientX - prevX;
+            const dy = e.clientY - prevY;
+            pouch.rotation.y += dx * 0.01;
+            pouch.rotation.x += dy * 0.01;
+            prevX = e.clientX; prevY = e.clientY;
+        });
+
+        // Touch support
+        renderer.domElement.addEventListener('touchstart', e => { isDragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; autoRotate = false; });
+        renderer.domElement.addEventListener('touchend', () => isDragging = false);
+        renderer.domElement.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            const dx = e.touches[0].clientX - prevX;
+            const dy = e.touches[0].clientY - prevY;
+            pouch.rotation.y += dx * 0.01;
+            pouch.rotation.x += dy * 0.01;
+            prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+        });
+    </script>
+</body>
+
+</html>
