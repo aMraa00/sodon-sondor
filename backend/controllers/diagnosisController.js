@@ -1,6 +1,7 @@
 const Diagnosis = require('../models/Diagnosis');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
+const aiService = require('../services/aiService');
 
 exports.createDiagnosis = asyncHandler(async (req, res) => {
   const diagnosis = await Diagnosis.create({ ...req.body, doctor: req.user._id });
@@ -25,4 +26,32 @@ exports.updateDiagnosis = asyncHandler(async (req, res) => {
 
   const updated = await Diagnosis.findByIdAndUpdate(req.params.id, req.body, { new: true });
   res.json({ success: true, data: updated });
+});
+
+exports.getPatientSymptomCheck = asyncHandler(async (req, res) => {
+  const { symptoms } = req.body;
+  if (!symptoms || symptoms.trim().length < 5) throw new ApiError(400, 'Шинж тэмдгийг дэлгэрэнгүй бичнэ үү.');
+
+  const { age, gender } = req.user;
+  const result = await aiService.getPatientSymptomCheck({
+    symptoms: symptoms.trim(),
+    age,
+    gender,
+  });
+
+  res.json({ success: true, data: result });
+});
+
+exports.getAISuggestion = asyncHandler(async (req, res) => {
+  const { symptoms, patientAge, patientGender, teethAffected } = req.body;
+  if (!symptoms || symptoms.trim().length < 5) throw new ApiError(400, 'Шинж тэмдгийг дэлгэрэнгүй бичнэ үү.');
+
+  const suggestion = await aiService.getDentalDiagnosisSuggestion({
+    symptoms: symptoms.trim(),
+    patientAge,
+    patientGender,
+    teethAffected,
+  });
+
+  res.json({ success: true, data: { ...suggestion, generatedAt: new Date() } });
 });

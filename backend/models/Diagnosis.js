@@ -13,6 +13,18 @@ const diagnosisSchema = new mongoose.Schema(
     images:      [{ type: String }], // x-ray URLs
     followUpDate: { type: Date },
     isResolved:  { type: Boolean, default: false },
+    aiSuggestion: {
+      title:                { type: String },
+      titleEn:              { type: String },
+      icdCode:              { type: String },
+      severity:             { type: String },
+      description:          { type: String },
+      recommendations:      [{ type: String }],
+      differentialDiagnoses:[{ type: String }],
+      urgency:              { type: String },
+      confidence:           { type: Number },
+      generatedAt:          { type: Date },
+    },
   },
   { timestamps: true }
 );

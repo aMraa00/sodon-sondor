@@ -8,6 +8,7 @@ import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import MobileDrawer from './MobileDrawer';
+import AIFloatingWidget from '@/components/diagnosis/AIFloatingWidget';
 import { cn } from '@/lib/utils';
 
 // Auth pages render standalone — no shell chrome needed
@@ -96,6 +97,7 @@ export default function AppShell({ children }) {
       </main>
 
       {!isPublic && isMobile && <BottomNav />}
+      {!isPublic && <AIFloatingWidget />}
     </div>
   );
 }

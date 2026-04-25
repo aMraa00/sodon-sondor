@@ -1,5 +1,10 @@
 node_modules/
 dist/
+# Capacitor Android build artifacts
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/local.properties
 .env
 .env.local
 .env.production

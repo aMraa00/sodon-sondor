@@ -149,6 +149,14 @@ export const userService = {
   toggleStatus:  (id)     => api.patch(`/users/${id}/status`),
 };
 
+export const diagnosisService = {
+  create:          (data)   => api.post('/diagnoses', data),
+  getByPatient:    (id)     => api.get(`/diagnoses/patient/${id}`),
+  update:          (id, data) => api.put(`/diagnoses/${id}`, data),
+  aiSuggest:       (data)   => api.post('/diagnoses/ai-suggest', data),
+  symptomCheck:    (data)   => api.post('/diagnoses/symptom-check', data),
+};
+
 export const uploadService = {
   avatar: (file) => {
     const fd = new FormData();
