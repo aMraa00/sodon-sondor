@@ -1,9 +1,11 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
+const User = require('../models/User');
 const Notification = require('../models/Notification');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const paginate = require('../utils/pagination');
+const emailService = require('../services/emailService');
 const { format, addMinutes, parseISO, startOfMonth, endOfMonth } = require('date-fns');
 
 const emitNotification = (io, recipientId, payload) => {
@@ -73,6 +75,22 @@ exports.createAppointment = asyncHandler(async (req, res) => {
   emitNotification(io, doctor, notifPayload);
   io?.emit('appointment:created', { appointmentId: appt._id, doctor, date, startTime });
 
+  // Өвчтөнд имэйл илгээх (алдаа гарсан ч хариу хүлээхгүй)
+  const populated = await Appointment.findById(appt._id)
+    .populate('patient', 'firstName lastName email')
+    .populate('doctor', 'firstName lastName')
+    .populate('service', 'name');
+  if (populated?.patient?.email) {
+    emailService.sendAppointmentConfirmation(
+      populated.patient.email,
+      populated.patient.firstName,
+      format(new Date(date), 'yyyy-MM-dd'),
+      startTime,
+      `${populated.doctor.lastName} ${populated.doctor.firstName}`,
+      populated.service?.name || '',
+    ).catch(() => {});
+  }
+
   res.status(201).json({ success: true, data: appt, message: 'Цаг захиалга амжилттай үүслээ.' });
 });
 
@@ -108,6 +126,28 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   await Notification.create({ recipient: appt.patient, ...notif });
   emitNotification(io, appt.patient.toString(), notif);
   io?.emit('appointment:updated', { appointmentId: appt._id, status });
+
+  // Статус өөрчлөгдөхөд өвчтөнд имэйл явуулах
+  if (status === 'confirmed' || status === 'cancelled' || status === 'completed') {
+    const full = await Appointment.findById(appt._id)
+      .populate('patient', 'firstName lastName email')
+      .populate('doctor', 'firstName lastName')
+      .populate('service', 'name');
+    const patientEmail = full?.patient?.email;
+    const patientName = full?.patient?.firstName || '';
+    const doctorName = full?.doctor ? `${full.doctor.lastName} ${full.doctor.firstName}` : '';
+    const dateStr = format(new Date(appt.date), 'yyyy-MM-dd');
+
+    if (patientEmail) {
+      if (status === 'confirmed') {
+        emailService.sendAppointmentConfirmation(patientEmail, patientName, dateStr, appt.startTime, doctorName, full.service?.name || '').catch(() => {});
+      } else if (status === 'cancelled') {
+        emailService.sendAppointmentCancelled(patientEmail, patientName, dateStr, appt.startTime, cancelReason).catch(() => {});
+      } else if (status === 'completed') {
+        emailService.sendAppointmentCompleted(patientEmail, patientName, doctorName, full.service?.name || '').catch(() => {});
+      }
+    }
+  }
 
   res.json({ success: true, data: appt, message: 'Төлөв шинэчлэгдлээ.' });
 });
