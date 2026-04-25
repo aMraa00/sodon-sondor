@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Check, Star, Stethoscope, Sparkles, Sun, Wrench, Scissors, Building2, Smile, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Star, Stethoscope, Sparkles, Sun, Wrench, Scissors, Building2, Smile, HelpCircle, Banknote } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import { format, isBefore, startOfToday } from 'date-fns';
 import { mn } from 'date-fns/locale';
@@ -228,13 +228,18 @@ export default function BookAppointment() {
                   ['👨‍⚕️ Эмч', `${form.doctor?.user?.lastName} ${form.doctor?.user?.firstName}`],
                   ['📅 Огноо', form.date ? format(form.date, 'yyyy-MM-dd') : ''],
                   ['🕐 Цаг', form.slot?.time],
-                  ['💰 Үнэ', formatCurrency(form.service?.price)],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-sm text-muted-foreground">{label}</span>
                     <span className="text-sm font-medium">{value}</span>
                   </div>
                 ))}
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <Banknote className="w-4 h-4 text-brand-500" /> Үнэ
+                  </span>
+                  <span className="text-base font-bold text-brand-600">{formatCurrency(form.service?.price)}</span>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Нэмэлт тайлбар (заавал биш)</label>
