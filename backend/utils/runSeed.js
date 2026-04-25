@@ -135,8 +135,23 @@ module.exports = async function runSeed() {
   console.log(`✅ ${appointments.length} цаг захиалга`);
 
   const completedAppts = appointments.filter(a=>a.status==='completed').slice(0,20);
-  const dxNames = ['Кариес (K02.1)','Пульпит (K04.0)','Периодонтит (K05.2)','Гингивит (K05.1)','Шүдний мэдрэмтгий байдал','Ерөнхий оношлогоо'];
-  await Diagnosis.insertMany(completedAppts.map((a,i)=>({ patient:a.patient, doctor:a.doctor, appointment:a._id, diagnosis:dxNames[i%dxNames.length], description:'Эмчилгээ амжилттай.', treatment:['Цэвэрлэгээ','Нөхдөс','Шүд авалт'][i%3], date:a.date })));
+  const dxData = [
+    { title:'Кариес',                  icdCode:'K02.1', severity:'mild',     teethAffected:[16,26] },
+    { title:'Пульпит',                 icdCode:'K04.0', severity:'moderate', teethAffected:[36] },
+    { title:'Периодонтит',             icdCode:'K05.2', severity:'severe',   teethAffected:[46] },
+    { title:'Гингивит',                icdCode:'K05.1', severity:'mild',     teethAffected:[] },
+    { title:'Шүдний мэдрэмтгий байдал',icdCode:'K03.8', severity:'mild',     teethAffected:[11,21] },
+    { title:'Ерөнхий оношлогоо',       icdCode:'Z01.2', severity:'mild',     teethAffected:[] },
+  ];
+  await Diagnosis.insertMany(completedAppts.map((a,i)=>({
+    patient:a.patient, doctor:a.doctor, appointment:a._id,
+    title: dxData[i%dxData.length].title,
+    icdCode: dxData[i%dxData.length].icdCode,
+    severity: dxData[i%dxData.length].severity,
+    teethAffected: dxData[i%dxData.length].teethAffected,
+    description:'Эмчилгээ амжилттай дууслаа. Тогтмол шалгалт хийлгэхийг зөвлөж байна.',
+    followUpDate: new Date(a.date.getTime() + 30*86400000),
+  })));
 
   const meds = [
     {name:'Амоксициллин 500мг',dosage:'1×3',duration:'5 өдөр',instructions:'Хоолны дараа'},
