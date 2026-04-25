@@ -6,6 +6,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const { addToBlacklist } = require('../utils/tokenBlacklist');
 const emailService = require('../services/emailService');
+const { getPrimaryClientUrl } = require('../config/corsConfig');
 
 const signToken = (id, secret, expire) =>
   jwt.sign({ id }, secret, { expiresIn: expire });
@@ -107,7 +108,7 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
   user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
   await user.save({ validateBeforeSave: false });
 
-  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${token}`;
+  const resetUrl = `${getPrimaryClientUrl()}/reset-password/${token}`;
   await emailService.sendPasswordReset(user.email, user.firstName, resetUrl);
 
   res.json({ success: true, message: 'Нууц үг сэргээх линк имэйлээр илгээгдлээ.' });

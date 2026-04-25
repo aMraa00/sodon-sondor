@@ -43,7 +43,7 @@ export const TOOTH_STATUSES = [
 ];
 
 /** Vercel дээр VITE_* дутуу бол ч ажиллахын тул (Render API) */
-const PROD_BACKEND_ORIGIN = 'https://sodon-sondor.onrender.com';
+const PROD_BACKEND_ORIGIN = 'https://sodon-sondor-api.onrender.com';
 
 const resolveApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;

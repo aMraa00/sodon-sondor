@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 
 const connectDB = require('./config/db');
+const { corsOriginCallback } = require('./config/corsConfig');
 const errorHandler = require('./middleware/errorHandler');
 const setupSocket = require('./sockets');
 
@@ -33,8 +34,9 @@ connectDB();
 
 const app = express();
 const server = http.createServer(app);
+const allowCors = corsOriginCallback();
 const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_URL, methods: ['GET', 'POST'], credentials: true },
+  cors: { origin: allowCors, methods: ['GET', 'POST'], credentials: true },
 });
 
 app.set('io', io);
@@ -48,7 +50,7 @@ setupSocket(io);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(cors({ origin: allowCors, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
