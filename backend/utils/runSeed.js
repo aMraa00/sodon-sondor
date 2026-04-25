@@ -162,7 +162,20 @@ module.exports = async function runSeed() {
   await Prescription.insertMany(completedAppts.slice(0,15).map((a,i)=>({ patient:a.patient, doctor:a.doctor, appointment:a._id, medications:[meds[i%meds.length]], issuedAt:a.date })));
 
   const payMethods = ['cash','card','qr','insurance'];
-  await Payment.insertMany(completedAppts.slice(0,28).map((a,i)=>({ patient:a.patient, appointment:a._id, amount:services[i%services.length].price, method:payMethods[i%payMethods.length], status:'paid', paidAt:a.date, receivedBy:receptionUser._id })));
+  const year = new Date().getFullYear();
+  const paymentDocs = completedAppts.slice(0,28).map((a,i)=>{
+    const price = services[i%services.length].price;
+    return {
+      patient: a.patient, appointment: a._id,
+      services: [{ service: a.service, price, qty: 1 }],
+      subtotal: price, discount: 0, tax: 0, total: price,
+      method: payMethods[i%payMethods.length],
+      status: 'paid', paidAt: a.date,
+      collectedBy: receptionUser._id,
+      receiptNumber: `INV-${year}-${String(i+1).padStart(6,'0')}`,
+    };
+  });
+  await Payment.insertMany(paymentDocs);
 
   console.log('✅ Оношлогоо, жор, төлбөр нэмэгдлээ');
   console.log('🎉 Бүрэн seed дууслаа!');
