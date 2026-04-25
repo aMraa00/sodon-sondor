@@ -12,6 +12,7 @@ const fs = require('fs');
 
 const connectDB = require('./config/db');
 const { corsOriginCallback } = require('./config/corsConfig');
+const autoSeedIfEmpty = require('./utils/autoSeed');
 const errorHandler = require('./middleware/errorHandler');
 const setupSocket = require('./sockets');
 
@@ -30,9 +31,12 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const reportRoutes       = require('./routes/reportRoutes');
 const uploadRoutes       = require('./routes/uploadRoutes');
 
-connectDB();
+connectDB().then(autoSeedIfEmpty);
 
 const app = express();
+// Render болон бусад proxy-н ард ажиллахад шаардлагатай —
+// express-rate-limit X-Forwarded-For хаягийг зөв уншина
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const allowCors = corsOriginCallback();
 const io = new Server(server, {
