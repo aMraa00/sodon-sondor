@@ -3,13 +3,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { Suspense, lazy } from 'react';
 import { PageLoader } from '@/components/common/Loader';
 import AppShell from '@/components/layout/AppShell';
+import Home from '@/pages/public/Home';
+import Login from '@/pages/auth/Login';
+import Register from '@/pages/auth/Register';
+import Forgot from '@/pages/auth/Forgot';
+import ResetPw from '@/pages/auth/ResetPassword';
 
-// Lazy loaded pages
-const Home       = lazy(() => import('@/pages/public/Home'));
-const Login      = lazy(() => import('@/pages/auth/Login'));
-const Register   = lazy(() => import('@/pages/auth/Register'));
-const Forgot     = lazy(() => import('@/pages/auth/Forgot'));
-const ResetPw    = lazy(() => import('@/pages/auth/ResetPassword'));
+// Lazy: deploy дараа кэш + chunk hash унахад "Failed to fetch dynamic import" гарч болзошгүй — нийтлэг (login) хуудсыг main-д оруулсан
 
 const AdminDashboard    = lazy(() => import('@/pages/admin/Dashboard'));
 const AdminUsers        = lazy(() => import('@/pages/admin/Users'));
