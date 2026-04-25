@@ -42,7 +42,23 @@ export const TOOTH_STATUSES = [
   { value: 'extraction-needed', label: 'Яаралтай авах',    color: '#ef4444' },
 ];
 
-export const API_BASE = import.meta.env.VITE_API_URL || '/api';
+/** Vercel дээр VITE_* дутуу бол ч ажиллахын тул (Render API) */
+const PROD_BACKEND_ORIGIN = 'https://sodon-sondor.onrender.com';
+
+const resolveApiBase = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return `${PROD_BACKEND_ORIGIN}/api`;
+  return '/api';
+};
+
+const resolveSocketUrl = () => {
+  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+  if (import.meta.env.PROD) return PROD_BACKEND_ORIGIN;
+  return '/';
+};
+
+export const API_BASE = resolveApiBase();
+export const SOCKET_URL = resolveSocketUrl();
 
 export const NAV_ITEMS = {
   admin: [

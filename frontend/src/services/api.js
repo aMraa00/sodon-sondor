@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { store } from '@/store';
+import { API_BASE } from '@/constants';
 import { logout, setToken } from '@/store/slices/authSlice';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -38,7 +39,11 @@ api.interceptors.response.use(
       original._retry = true;
       isRefreshing = true;
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        const { data } = await axios.post(
+          `${API_BASE.replace(/\/$/, '')}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
         const { token } = data;
         store.dispatch(setToken(token));
         processQueue(null, token);

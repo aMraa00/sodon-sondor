@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/store/slices/notificationSlice';
+import { SOCKET_URL } from '@/constants';
 import { useAuth } from './useAuth';
 
 let socketInstance = null;
@@ -15,7 +16,7 @@ export const useSocket = () => {
     if (!isAuthenticated || !token || initialized.current) return;
     initialized.current = true;
 
-    socketInstance = io('/', {
+    socketInstance = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
     });
