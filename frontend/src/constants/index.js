@@ -42,17 +42,25 @@ export const TOOTH_STATUSES = [
   { value: 'extraction-needed', label: 'Яаралтай авах',    color: '#ef4444' },
 ];
 
-/** Vercel дээр VITE_* дутуу бол ч ажиллахын тул. Render dashboard-ын бодит ганц public URL-тай тааруул (бүтэн нэр нь өөр бол энд соль). */
+/** Render dashboard дээрх public URL (одоогийн: sodon-sondor) — Vite env-тай нэгтэй байх ёстой. */
 const PROD_BACKEND_ORIGIN = 'https://sodon-sondor.onrender.com';
+/** Vercel дээрх хуучин VITE_API_URL: ...-api.onrender.com үлдсэн ч зөв серверрүү оруулна. */
+const LEGACY_RENDER_HOST = 'sodon-sondor-api.onrender.com';
+const CANONICAL_RENDER_HOST = 'sodon-sondor.onrender.com';
+
+const canonicalBackendUrl = (u) =>
+  typeof u === 'string' && u.includes(LEGACY_RENDER_HOST)
+    ? u.replace(LEGACY_RENDER_HOST, CANONICAL_RENDER_HOST)
+    : u;
 
 const resolveApiBase = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_URL) return canonicalBackendUrl(import.meta.env.VITE_API_URL);
   if (import.meta.env.PROD) return `${PROD_BACKEND_ORIGIN}/api`;
   return '/api';
 };
 
 const resolveSocketUrl = () => {
-  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+  if (import.meta.env.VITE_SOCKET_URL) return canonicalBackendUrl(import.meta.env.VITE_SOCKET_URL);
   if (import.meta.env.PROD) return PROD_BACKEND_ORIGIN;
   return '/';
 };

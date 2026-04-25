@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: sodon-sondor-api
+    # Public URL: https://<name>.onrender.com — бодит сервертэй нэр тааруул.
+    name: sodon-sondor
     runtime: node
     rootDir: backend
     buildCommand: npm install
