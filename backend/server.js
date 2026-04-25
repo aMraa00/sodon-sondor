@@ -68,8 +68,18 @@ app.get('/api/run-seed', async (req, res) => {
     return res.status(403).json({ success: false, message: 'Хандах эрхгүй' });
   }
   try {
-    await autoSeedIfEmpty();
-    res.json({ success: true, message: 'Seed амжилттай дууслаа. Demo: admin@sodon.mn / Admin@123' });
+    const runSeed = require('./utils/runSeed');
+    await runSeed();
+    res.json({
+      success: true,
+      message: 'Бүрэн seed дууслаа.',
+      demo: {
+        admin:      'admin@sodon.mn / Admin@123',
+        doctor:     'doctor@sodon.mn / Doctor@123',
+        reception:  'reception@sodon.mn / Reception@123',
+        patient:    'patient@sodon.mn / Patient@123',
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
