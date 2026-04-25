@@ -42,8 +42,8 @@ export const TOOTH_STATUSES = [
   { value: 'extraction-needed', label: 'Яаралтай авах',    color: '#ef4444' },
 ];
 
-/** Vercel дээр VITE_* дутуу бол ч ажиллахын тул (Render API) */
-const PROD_BACKEND_ORIGIN = 'https://sodon-sondor-api.onrender.com';
+/** Vercel дээр VITE_* дутуу бол ч ажиллахын тул. Render dashboard-ын бодит ганц public URL-тай тааруул (бүтэн нэр нь өөр бол энд соль). */
+const PROD_BACKEND_ORIGIN = 'https://sodon-sondor.onrender.com';
 
 const resolveApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
