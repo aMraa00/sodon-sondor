@@ -62,6 +62,19 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'Содон Сондор API ажиллаж байна 🦷', env: process.env.NODE_ENV }));
 
+// Нэг удаагийн seed endpoint — SEED_KEY тохируулна уу
+app.get('/api/run-seed', async (req, res) => {
+  if (req.query.key !== process.env.SEED_KEY || !process.env.SEED_KEY) {
+    return res.status(403).json({ success: false, message: 'Хандах эрхгүй' });
+  }
+  try {
+    await autoSeedIfEmpty();
+    res.json({ success: true, message: 'Seed амжилттай дууслаа. Demo: admin@sodon.mn / Admin@123' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.use('/api/auth',          authRoutes);
 app.use('/api/users',         userRoutes);
 app.use('/api/patients',      patientRoutes);
