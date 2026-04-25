@@ -6,7 +6,7 @@ import { store } from '@/store';
 import { fetchMe } from '@/store/slices/authSlice';
 import AppRoutes from '@/routes';
 
-store.dispatch(fetchMe());
+if (localStorage.getItem('token')) store.dispatch(fetchMe());
 
 export default function App() {
   return (

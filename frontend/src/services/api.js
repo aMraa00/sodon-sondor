@@ -23,11 +23,15 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// These endpoints return 401 legitimately — don't attempt token refresh for them
+const NO_REFRESH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout', '/auth/me'];
+
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    const isNoRefresh = NO_REFRESH_ENDPOINTS.some((ep) => original.url?.includes(ep));
+    if (err.response?.status === 401 && !original._retry && !isNoRefresh) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -52,7 +56,7 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         processQueue(refreshErr, null);
         store.dispatch(logout());
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') window.location.href = '/login';
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

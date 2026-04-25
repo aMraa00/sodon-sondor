@@ -32,7 +32,8 @@ export default function AppShell({ children }) {
   const isAuthPage = AUTH_PATHS.some((p) => location.pathname.startsWith(p));
 
   // Block render until fetchMe resolves — prevents flash between public/auth layouts
-  if (token && !initialized) {
+  // Skip for auth pages: user should see login form even if fetchMe is still pending
+  if (token && !initialized && !isAuthPage) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
